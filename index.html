@@ -500,7 +500,7 @@
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const date = ${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")};
+        const date = '${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}'
         const button = document.createElement("button");
         button.className = "day";
         button.type = "button";
@@ -515,8 +515,8 @@
 
         visibleEvents(date).slice(0, 2).forEach(event => {
           const chip = document.createElement("span");
-          chip.className = event-dot ${event.category};
-          chip.textContent = ${event.emoji} ${event.title};
+         chip.className ='event-dot ${event.category}';
+         chip.textContent ='${event.emoji} ${event.title}';
           button.append(chip);
         });
 
