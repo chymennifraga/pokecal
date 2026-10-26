@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#6b4ce6">
+  <title>PokéCal — Calendário Pokémon</title>
+
+  <style>
+    :root {
+      --purple: #6b4ce6;
+      --purple-light: #eee9ff;
+      --pink: #ff6b9d;
+      --bg: #f7f5fc;
+      --card: #ffffff;
+      --text: #27233a;
+      --muted: #77738a;
+      --border: #e8e3f1;
+      --green: #16865b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   sans-serif;
+    }
+
+    header {
+      padding: 24px 18px;
+      color: white;
+      background: linear-gradient(135deg, #6b4ce6, #a16be8);
+      border-radius: 0 0 24px 24px;
+    }
+
+    .header-inner, main {
+      width: min(100% - 28px, 850px);
+      margin: auto;
+    }
+
+    h1 { margin: 0; font-size: 28px; }
+    header p { margin: 8px 0 0; opacity: .92; }
+
+    main { padding: 18px 0 40px; }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px #30205c08;
+    }
+
+    .month-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #monthTitle {
+      margin: 0;
+      text-align: center;
+      font-size: 20px;
+      text-transform: capitalize;
+    }
+
+    button, select, input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 13px;
+      cursor: pointer;
+    }
+
+    .nav-button {
+      background: var(--purple-light);
+      color: var(--purple);
+      font-size: 19px;
+      min-width: 42px;
+    }
+
+    .primary {
+      background: var(--purple);
+      color: white;
+      font-weight: 650;
+    }
+
+    .secondary {
+      background: var(--purple-light);
+      color: var(--purple);
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    select {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      min-width: 0;
+    }
+
+    .weekdays, .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .weekdays {
+      margin: 18px 0 8px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .day {
+      min-width: 0;
+      min-height: 78px;
+      padding: 6px 4px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-align: left;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .day.empty {
+      background: transparent;
+      border-color: transparent;
+      cursor: default;
+    }
+
+    .day.selected {
+      border: 2px solid var(--purple);
+      background: var(--purple-light);
+      padding: 5px 3px;
+    }
+
+    .day.today .day-number {
+      color: var(--purple);
+      font-weight: 800;
+    }
+
+    .day-number {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    .event-dot {
+      display: block;
+      margin-top: 3px;
+      border-radius: 5px;
+      padding: 3px;
+      font-size: 10px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+      background: #eee9ff;
+      color: #5738c6;
+    }
+
+    .event-dot.community { background: #ffe8f0; color: #a22b5a; }
+    .event-dot.raid { background: #ffedcf; color: #875500; }
+    .event-dot.personal { background: #dff6eb; color: #146b49; }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .event-card {
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 12px;
+      margin-top: 9px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .event-emoji { font-size: 25px; }
+    .event-info { flex: 1; min-width: 0; }
+    .event-info strong { display: block; margin-bottom: 4px; }
+    .event-info p { margin: 4px 0; font-size: 13px; color: var(--muted); }
+    .event-time { color: var(--green) !important; font-weight: 700; }
+
+    .delete-button {
+      background: #fff0f1;
+      color: #b42335;
+      padding: 8px;
+      font-size: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+
+    .field label { font-size: 13px; font-weight: 650; }
+
+    .field input, .field select {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .empty-message {
+      color: var(--muted);
+      font-size: 14px;
+      padding: 10px 0;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 10px 20px 24px;
+    }
+
+    @media (max-width: 430px) {
+      header { padding: 21px 14px; }
+      h1 { font-size: 25px; }
+      .header-inner, main { width: calc(100% - 20px); }
+      .panel { padding: 11px; }
+      .day { min-height: 66px; padding: 5px 2px; }
+      .day.selected { padding: 4px 1px; }
+      .event-dot { font-size: 9px; padding: 2px; }
+      .weekdays { font-size: 10px; gap: 3px; }
+      .calendar-grid { gap: 3px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      #monthTitle { font-size: 17px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>⚡ PokéCal</h1>
+      <p>Seu calendário Pokémon, no horário do Brasil 🇧🇷</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="month-controls">
+        <button class="nav-button" id="previousMonth"
+                aria-label="Mês anterior">‹</button>
+        <h2 id="monthTitle"></h2>
+        <button class="nav-button" id="nextMonth"
+                aria-label="Próximo mês">›</button>
+      </div>
+
+      <div class="filters">
+        <select id="filter">
+          <option value="all">Todos os eventos</option>
+          <option value="official">Eventos de teste</option>
+          <option value="community">Dia da Comunidade</option>
+          <option value="raid">Eventos de Reide</option>
+          <option value="personal">Meus eventos</option>
+        </select>
+        <button class="primary" id="showForm">＋ Criar evento</button>
+      </div>
+
+      <div class="weekdays">
+        <span>DOM</span><span>SEG</span><span>TER</span>
+        <span>QUA</span><span>QUI</span><span>SEX</span>
+        <span>SÁB</span>
+      </div>
+
+      <div id="calendarGrid" class="calendar-grid"></div>
+      <p class="note">Toque em um dia para ver os eventos dele.</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title" id="selectedTitle">Eventos do dia</h2>
+      <div id="eventList"></div>
+    </section>
+
+    <section class="panel" id="formPanel" hidden>
+      <h2 class="section-title">➕ Criar meu evento</h2>
+      <form id="eventForm">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="eventName">Nome do evento</label>
+            <input id="eventName" maxlength="80" required
+                   placeholder="Ex.: Jogar com amigos">
+          </div>
+
+          <div class="field">
+            <label for="eventDate">Data</label>
+            <input id="eventDate" type="date" required>
+          </div>
+
+          <div class="field">
+            <label for="eventTime">Horário de Brasília</label>
+            <input id="eventTime" type="time">
+          </div>
+
+          <div class="field">
+            <label for="eventCategory">Categoria</label>
+            <select id="eventCategory">
+              <option value="personal">Meu evento</option>
+              <option value="community">Dia da Comunidade</option>
+              <option value="raid">Reide</option>
+              <option value="official">Outro evento</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="eventEmoji">Ícone</label>
+            <select id="eventEmoji">
+              <option value="⭐">⭐ Estrela</option>
+              <option value="⚡">⚡ Elétrico</option>
+              <option value="🔥">🔥 Fogo</option>
+              <option value="💧">💧 Água</option>
+              <option value="🌱">🌱 Planta</option>
+              <option value="🎯">🎯 Reide</option>
+              <option value="🎉">🎉 Evento</option>
+              <option value="🎮">🎮 Jogar</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label for="eventNotes">Observação (opcional)</label>
+            <input id="eventNotes" maxlength="180"
+                   placeholder="Ex.: juntar moedas ou usar passe">
+          </div>
+        </div>
+
+        <p class="note">
+          Os horários digitados aqui são considerados horários de Brasília.
+          Eventos próprios ficam salvos neste navegador.
+        </p>
+
+        <div class="form-actions">
+          <button class="primary" type="submit">Salvar evento</button>
+          <button class="secondary" type="button" id="cancelForm">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    Projeto independente de fãs. Não é afiliado à Pokémon ou à Niantic.
+  </footer>
+
+  <script>
+    const TIME_ZONE = "America/Sao_Paulo";
+    const STORAGE_KEY = "pokecal-meus-eventos-v1";
+
+    const today = dateInBrazil();
+    let viewYear = Number(today.slice(0, 4));
+    let viewMonth = Number(today.slice(5, 7)) - 1;
+    let selectedDate = today;
+
+    // Estes são exemplos de teste, não são eventos oficiais confirmados.
+    const sampleEvents = [
+      {
+        id: "demo-1",
+        title: "Exemplo de evento Pokémon",
+        date: "2026-11-03",
+        time: "18:00",
+        category: "official",
+        emoji: "⚡",
+        notes: "Evento fictício para testar o calendário."
+      },
+      {
+        id: "demo-2",
+        title: "Exemplo de Dia da Comunidade",
+        date: "2026-11-08",
+        time: "14:00",
+        category: "community",
+        emoji: "🌱",
+        notes: "Data e horário ilustrativos."
+      },
+      {
+        id: "demo-3",
+        title: "Exemplo de evento de Reide",
+        date: "2026-11-12",
+        time: "19:00",
+        category: "raid",
+        emoji: "🎯",
+        notes: "Data e horário ilustrativos."
+      }
+    ];
+
+    const $ = id => document.getElementById(id);
+
+    function dateInBrazil() {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: TIME_ZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
+
+      const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
+      return ${p.year}-${p.month}-${p.day};
+    }
+
+    function readPersonalEvents() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function savePersonalEvents(events) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+    }
+
+    function allEvents() {
+      return [...sampleEvents, ...readPersonalEvents()];
+    }
+
+    function visibleEvents(date) {
+      const filter = $("filter").value;
+      return allEvents()
+        .filter(e => e.date === date)
+        .filter(e => filter === "all" || e.category === filter)
+        .sort((a, b) => (a.time || "00:00").localeCompare(b.time || "00:00"));
+    }
+
+    function formatDate(dateString) {
+      const [y, m, d] = dateString.split("-").map(Number);
+      return new Intl.DateTimeFormat("pt-BR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: TIME_ZONE
+      }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+    }
+
+    function categoryLabel(category) {
+      return {
+        official: "Evento de teste",
+        community: "Dia da Comunidade",
+        raid: "Reide",
+        personal: "Meu evento"
+      }[category] || "Evento";
+    }
+
+    function renderCalendar() {
+      const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+      $("monthTitle").textContent = new Intl.DateTimeFormat("pt-BR", {
+        month: "long",
+        year: "numeric",
+        timeZone: TIME_ZONE
+      }).format(new Date(Date.UTC(viewYear, viewMonth, 15, 12)));
+
+      const grid = $("calendarGrid");
+      grid.replaceChildren();
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement("div");
+        empty.className = "day empty";
+        grid.append(empty);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = ${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")};
+        const button = document.createElement("button");
+        button.className = "day";
+        button.type = "button";
+
+        if (date === selectedDate) button.classList.add("selected");
+        if (date === today) button.classList.add("today");
+
+        const number = document.createElement("span");
+        number.className = "day-number";
+        number.textContent = day;
+        button.append(number);
+
+        visibleEvents(date).slice(0, 2).forEach(event => {
+          const chip = document.createElement("span");
+          chip.className = event-dot ${event.category};
+          chip.textContent = ${event.emoji} ${event.title};
+          button.append(chip);
+        });
+
+        const count = visibleEvents(date).length;
+        if (count > 2) {
+          const more = document.createElement("span");
+          more.className = "event-dot";
+          more.textContent = +${count - 2} mais;
+          button.append(more);
+        }
+
+        button.addEventListener("click", () => {
+          selectedDate = date;
+          render();
+        });
+
+        grid.append(button);
+      }
+    }
+
+    function renderEventList() {
+      $("selectedTitle").textContent =
+        formatDate(selectedDate).replace(/^./, c => c.toUpperCase());
+
+      const list = $("eventList");
+      list.replaceChildren();
+      const events = visibleEvents(selectedDate);
+
+      if (events.length === 0) {
+        const message = document.createElement("p");
+        message.className = "empty-message";
+        message.textContent = "Nenhum evento nesta data com esse filtro.";
+        list.append(message);
+        return;
+      }
+
+      events.forEach(event => {
+        const card = document.createElement("article");
+        card.className = "event-card";
+
+        const emoji = document.createElement("span");
+        emoji.className = "event-emoji";
+        emoji.textContent = event.emoji;
+
+        const info = document.createElement("div");
+        info.className = "event-info";
+
+        const title = document.createElement("strong");
+        title.textContent = event.title;
+        info.append(title);
+
+        const category = document.createElement("p");
+        category.textContent = categoryLabel(event.category);
+        info.append(category);
+
+        const time = document.createElement("p");
+        time.className = "event-time";
+        time.textContent = event.time
+          ? ${event.time} — horário de Brasília
+          : "Dia inteiro / horário não informado";
+        info.append(time);
+
+        if (event.notes) {
+          const notes = document.createElement("p");
+          notes.textContent = event.notes;
+          info.append(notes);
+        }
+
+        card.append(emoji, info);
+
+        if (event.category === "personal") {
+          const remove = document.createElement("button");
+          remove.className = "delete-button";
+          remove.type = "button";
+          remove.textContent = "Apagar";
+          remove.addEventListener("click", () => {
+            const remaining = readPersonalEvents()
+              .filter(item => item.id !== event.id);
+            savePersonalEvents(remaining);
+            render();
+          });
+          card.append(remove);
+        }
+
+        list.append(card);
+      });
+    }
+
+    function render() {
+      renderCalendar();
+      renderEventList();
+    }
+
+    $("previousMonth").addEventListener("click", () => {
+      viewMonth--;
+      if (viewMonth < 0) {
+        viewMonth = 11;
+        viewYear--;
+      }
+      renderCalendar();
+    });
+
+    $("nextMonth").addEventListener("click", () => {
+      viewMonth++;
+      if (viewMonth > 11) {
+        viewMonth = 0;
+        viewYear++;
+      }
+      renderCalendar();
+    });
+
+    $("filter").addEventListener("change", render);
+
+    $("showForm").addEventListener("click", () => {
+      $("formPanel").hidden = false;
+      $("eventDate").value = selectedDate;
+      $("eventName").focus();
+      $("formPanel").scrollIntoView({ behavior: "smooth" });
+    });
+
+    $("cancelForm").addEventListener("click", () => {
+      $("eventForm").reset();
+      $("formPanel").hidden = true;
+    });
+
+    $("eventForm").addEventListener("submit", event => {
+      event.preventDefault();
+
+      const personal = readPersonalEvents();
+      personal.push({
+        id: personal-${Date.now()}-${Math.random().toString(36).slice(2, 8)},
+        title: $("eventName").value.trim(),
+        date: $("eventDate").value,
+        time: $("eventTime").value,
+        category: $("eventCategory").value,
+        emoji: $("eventEmoji").value,
+        notes: $("eventNotes").value.trim()
+      });
+
+      savePersonalEvents(personal);
+      selectedDate = $("eventDate").value;
+      viewYear = Number(selectedDate.slice(0, 4));
+      viewMonth = Number(selectedDate.slice(5, 7)) - 1;
+
+      $("eventForm").reset();
+      $("formPanel").hidden = true;
+      $("filter").value = "all";
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
